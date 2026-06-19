@@ -1,0 +1,808 @@
+<!--
+创造性：将静态地图改造为非线性探索叙事，结合视觉（古风UI、脉冲热点、圆形NPC徽章）与听觉（笑声彩蛋）双重反馈，
+10个NPC对话串联成奶家村笑声传说。图片容错降级为古风圆章，确保离线或资源缺失时体验不中断。
+弹窗采用左图右文布局，对话逐句推进，末句触发笑声庆祝动画，形成完整的“探索—互动—反馈”闭环。
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奶家村 · 交互式地图探索</title>
+    <style>
+        :root {
+            --vermilion: #8b3a1f;
+            --vermilion-dark: #6b2a15;
+            --cream: #fdf6e3;
+            --gold: #d4a574;
+            --gold-light: #e8cfa0;
+            --ink: #2c2416;
+            --amber: #f0a840;
+            --amber-glow: rgba(240, 168, 64, 0.7);
+            --jade: #5a8a6e;
+            --shadow-soft: 0 4px 20px rgba(44, 36, 22, 0.25);
+            --shadow-card: 0 8px 32px rgba(44, 36, 22, 0.35);
+            --border-radius-card: 16px;
+            --border-radius-btn: 10px;
+            --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-serif: "Songti SC", "Noto Serif SC", "SimSun", "FangSong", "STSong", "Georgia", "Times New Roman", serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #3a2f1f;
+            background-image:
+                radial-gradient(ellipse at 50% 0%, rgba(180, 140, 100, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(60, 30, 15, 0.3) 0%, transparent 60%);
+            min-height: 100vh;
+            font-family: var(--font-serif);
+            color: var(--ink);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .site-header {
+            text-align: center;
+            padding: 28px 20px 18px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .site-header h1 {
+            font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+            color: var(--cream);
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 40px rgba(212, 165, 116, 0.3);
+            position: relative;
+            display: inline-block;
+        }
+        .site-header h1::after {
+            content: '';
+            display: block;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            margin: 8px auto 0;
+            border-radius: 1px;
+        }
+        .site-header .subtitle {
+            font-size: 0.9rem;
+            color: var(--gold-light);
+            letter-spacing: 0.12em;
+            margin-top: 4px;
+            opacity: 0.85;
+        }
+
+        .map-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 12px;
+            position: relative;
+        }
+        .map-container {
+            position: relative;
+            display: block;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft), 0 0 0 6px rgba(139, 58, 31, 0.25), 0 0 0 10px rgba(212, 165, 116, 0.15);
+            background: #1a1008;
+            cursor: default;
+        }
+        .map-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+        }
+
+        .hotspot {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #ffe9b0, var(--amber) 60%, #c47a20 100%);
+            cursor: pointer;
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            animation: hotspotPulse 2.2s ease-in-out infinite;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            pointer-events: auto;
+        }
+        .hotspot::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            transform: translate(-50%, -50%);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        .hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+            animation: hotspotPulseHover 0.8s ease-in-out infinite;
+            z-index: 20;
+            border-color: #fff;
+        }
+        .hotspot:active {
+            transform: translate(-50%, -50%) scale(1.3);
+            transition: transform 0.08s ease;
+        }
+
+        @keyframes hotspotPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 8px 4px var(--amber-glow), 0 0 18px 8px rgba(240, 168, 64, 0.35), 0 0 30px 14px rgba(240, 150, 40, 0.15);
+            }
+            50% {
+                box-shadow: 0 0 14px 8px rgba(255, 190, 70, 0.9), 0 0 28px 16px rgba(240, 168, 64, 0.55), 0 0 44px 22px rgba(240, 150, 40, 0.25);
+            }
+        }
+        @keyframes hotspotPulseHover {
+            0%,
+            100% {
+                box-shadow: 0 0 16px 8px rgba(255, 200, 80, 0.9), 0 0 32px 18px rgba(240, 170, 50, 0.6), 0 0 50px 26px rgba(240, 150, 40, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 22px 12px rgba(255, 210, 90, 1), 0 0 40px 24px rgba(245, 175, 55, 0.75), 0 0 58px 32px rgba(240, 150, 40, 0.4);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hotspot {
+                width: 34px;
+                height: 34px;
+            }
+            .hotspot::after {
+                width: 10px;
+                height: 10px;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 10, 5, 0.72);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background: linear-gradient(180deg, #fefaf2 0%, #fdf6e3 30%, #f9ecce 100%);
+            border: 3px solid var(--vermilion);
+            border-radius: var(--border-radius-card);
+            box-shadow: var(--shadow-card), 0 0 0 6px rgba(212, 165, 116, 0.3), 0 0 0 10px rgba(139, 58, 31, 0.12);
+            max-width: 680px;
+            width: 92%;
+            position: relative;
+            overflow: visible;
+            animation: modalEntry 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            padding: 28px 24px 24px;
+        }
+        @keyframes modalEntry {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.94);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--vermilion);
+            color: var(--cream);
+            border: 2px solid var(--cream);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            font-family: inherit;
+        }
+        .modal-close-btn:hover {
+            background: #b5482a;
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+        .modal-close-btn:active {
+            transform: scale(0.95);
+        }
+
+        .modal-image-area {
+            flex-shrink: 0;
+            width: 140px;
+            height: 140px;
+            position: relative;
+            align-self: center;
+        }
+        .modal-npc-image {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--vermilion);
+            box-shadow: 0 0 0 4px var(--gold), 0 0 22px rgba(139, 58, 31, 0.35);
+            display: block;
+            transition: opacity 0.3s ease;
+            background: #f0e6d3;
+        }
+        .modal-npc-image.hidden {
+            display: none;
+        }
+        .modal-fallback-seal {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px;
+            font-weight: 700;
+            color: #fdf6e3;
+            border: 5px solid var(--gold);
+            box-shadow: 0 0 0 4px var(--vermilion), 0 0 22px rgba(139, 58, 31, 0.35);
+            letter-spacing: 0.04em;
+            font-family: var(--font-serif);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .modal-fallback-seal.hidden {
+            display: none;
+        }
+
+        .modal-text-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+        .modal-npc-name {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--vermilion);
+            letter-spacing: 0.06em;
+            border-bottom: 2px dashed var(--gold);
+            padding-bottom: 8px;
+            font-family: var(--font-serif);
+        }
+        .modal-scene-name {
+            font-size: 0.85rem;
+            color: #8b6b4e;
+            letter-spacing: 0.05em;
+            margin-top: -6px;
+        }
+        .modal-dialogue {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #3a2510;
+            min-height: 56px;
+            transition: opacity 0.22s ease;
+            font-family: var(--font-serif);
+            letter-spacing: 0.03em;
+        }
+        .modal-dialogue.fading {
+            opacity: 0.35;
+        }
+        .modal-btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: auto;
+        }
+        .modal-next-btn {
+            background: var(--vermilion);
+            color: var(--cream);
+            border: 2px solid var(--vermilion-dark);
+            border-radius: var(--border-radius-btn);
+            padding: 10px 22px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-family: var(--font-serif);
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 10px rgba(107, 42, 21, 0.3);
+            white-space: nowrap;
+        }
+        .modal-next-btn:hover {
+            background: #a0452a;
+            border-color: #8b3a1f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(107, 42, 21, 0.4);
+        }
+        .modal-next-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(107, 42, 21, 0.3);
+            transition: all 0.08s ease;
+        }
+        .modal-next-btn.laugh-mode {
+            background: #c0392b;
+            border-color: #8b1a1a;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            animation: laughBtnGlow 0.8s ease-in-out infinite;
+        }
+        @keyframes laughBtnGlow {
+            0%,
+            100% {
+                box-shadow: 0 3px 10px rgba(192, 57, 43, 0.4);
+            }
+            50% {
+                box-shadow: 0 6px 24px rgba(220, 70, 40, 0.7), 0 0 40px rgba(255, 180, 60, 0.4);
+            }
+        }
+        .modal-next-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .celebrate-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .celebrate-overlay.active {
+            opacity: 1;
+        }
+        .celebrate-text {
+            font-size: clamp(2.4rem, 6vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            color: #fff;
+            text-shadow:
+                0 0 20px rgba(255, 200, 50, 0.9),
+                0 0 50px rgba(255, 150, 30, 0.7),
+                0 0 80px rgba(255, 100, 20, 0.5),
+                0 4px 8px rgba(0, 0, 0, 0.5);
+            animation: celebrateBounce 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+            font-family: var(--font-serif);
+            text-align: center;
+            line-height: 1.3;
+        }
+        @keyframes celebrateBounce {
+            0% {
+                transform: scale(0.2) rotate(-8deg);
+                opacity: 0;
+            }
+            20% {
+                transform: scale(1.15) rotate(3deg);
+                opacity: 1;
+            }
+            35% {
+                transform: scale(0.9) rotate(-1deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05) rotate(0.5deg);
+                opacity: 1;
+            }
+            65% {
+                transform: scale(0.96) rotate(0deg);
+                opacity: 1;
+            }
+            80% {
+                transform: scale(1.02) rotate(0deg);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(1.08) rotate(0deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .modal-card {
+                flex-direction: column;
+                align-items: center;
+                padding: 22px 16px 20px;
+                gap: 14px;
+                width: 95%;
+                max-width: 95%;
+            }
+            .modal-image-area {
+                width: 110px;
+                height: 110px;
+            }
+            .modal-npc-image {
+                width: 110px;
+                height: 110px;
+                border-width: 4px;
+            }
+            .modal-fallback-seal {
+                width: 110px;
+                height: 110px;
+                font-size: 40px;
+                border-width: 4px;
+            }
+            .modal-npc-image {
+                box-shadow: 0 0 0 3px var(--gold), 0 0 16px rgba(139, 58, 31, 0.3);
+            }
+            .modal-fallback-seal {
+                box-shadow: 0 0 0 3px var(--vermilion), 0 0 16px rgba(139, 58, 31, 0.3);
+            }
+            .modal-text-area {
+                align-items: center;
+                text-align: center;
+                gap: 10px;
+            }
+            .modal-npc-name {
+                border-bottom: none;
+                padding-bottom: 0;
+                font-size: 1.2rem;
+            }
+            .modal-dialogue {
+                font-size: 0.95rem;
+                min-height: 44px;
+            }
+            .modal-close-btn {
+                top: -10px;
+                right: -10px;
+                width: 30px;
+                height: 30px;
+                font-size: 15px;
+            }
+            .modal-btn-row {
+                justify-content: center;
+            }
+            .modal-next-btn {
+                padding: 8px 18px;
+                font-size: 0.9rem;
+            }
+        }
+
+        .site-footer {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 24px 16px 30px;
+            color: #b8a080;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            line-height: 1.8;
+            font-family: var(--font-serif);
+        }
+        .site-footer a {
+            color: var(--gold-light);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--gold);
+            transition: color 0.2s;
+        }
+        .site-footer a:hover {
+            color: #f0d8a0;
+            border-bottom-color: #f0d8a0;
+        }
+        .site-footer .divider {
+            display: inline-block;
+            margin: 0 8px;
+            color: #6b5a3e;
+        }
+
+        #laughAudio {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="laughAudio" src="laugh.mp3" preload="auto"></audio>
+
+    <header class="site-header">
+        <h1>🏔️ 奶家村 · 交互式地图</h1>
+        <p class="subtitle">探访十处胜地 · 收集十段笑声传说</p>
+    </header>
+
+    <div class="map-wrapper">
+        <div class="map-container" id="mapContainer">
+            <img class="map-image" src="map.jpg.png" alt="奶家村地图" id="mapImage">
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card" id="modalCard">
+            <button class="modal-close-btn" id="modalCloseBtn" title="关闭" aria-label="关闭弹窗">✕</button>
+            <div class="modal-image-area" id="modalImageArea">
+                <img class="modal-npc-image" id="modalNpcImage" src="" alt="NPC形象">
+                <div class="modal-fallback-seal hidden" id="modalFallbackSeal"></div>
+            </div>
+            <div class="modal-text-area">
+                <div>
+                    <div class="modal-npc-name" id="modalNpcName"></div>
+                    <div class="modal-scene-name" id="modalSceneName"></div>
+                </div>
+                <div class="modal-dialogue" id="modalDialogue"></div>
+                <div class="modal-btn-row">
+                    <button class="modal-next-btn" id="modalNextBtn">下一条</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="celebrate-overlay" id="celebrateOverlay">
+        <div class="celebrate-text" id="celebrateText">😂 哈！哈！哈！</div>
+    </div>
+
+    <footer class="site-footer">
+        <p>
+            地图素材来源：奶家村原创手绘地图<span class="divider">|</span>
+            音效来源：原创笑声录音 / 免费音效库<span class="divider">|</span>
+            AI辅助生成说明：本页面由AI辅助生成（DeepSeek），用于课程学习与展示
+        </p>
+        <p style="margin-top:4px;opacity:0.7;">
+            奶家村笑声传说 · 交互式地图探索 · 纯前端单页应用
+        </p>
+    </footer>
+
+    <script>
+        (function() {
+            // ==================== 核心数据（已修正引号冲突） ====================
+            const scenes = [
+                { id: 1, name: "🏔️ 北山山林", npc: "吉吉奶王", posX: "37.97%", posY: "21.17%", dialogues: ['俺是山大王吉吉奶王！此山是我开，此树是我栽。', '要想过此路，留下买路财？不不，俺们村不兴这个。', '俺只收“笑声”！来，给俺笑一个！'] },
+                { id: 2, name: "🌊 南河河畔", npc: "奶pa", posX: "94.75%", posY: "83.22%", dialogues: ['我是河神奶pa，你掉的是金安迪还是银安迪？', '都不是？那你掉的一定是“开心的笑容”！', '捞起来吧，顺便笑两声给河神听听！'] },
+                { id: 3, name: "🏛️ 奶氏祠堂", npc: "孔龙老者", posX: "47.49%", posY: "56.85%", dialogues: ['老夫孔龙老者，等你多时了。', '这祠堂里藏着奶家千年的“笑声秘籍”。', '秘籍最后一页写着：有朋自远方来，不亦乐乎！'] },
+                { id: 4, name: "🏘️ 村民住宅区", npc: "奶豪", posX: "32.76%", posY: "75.34%", dialogues: ['我是奶豪，村里最靓的仔！', '我刚在村东盖了个大别野，带泳池那种。', '欢迎来做客，门票是一串响亮的笑声！'] },
+                { id: 5, name: "🏢 奶氏政府", npc: "奶氏早苗", posX: "68.49%", posY: "41.89%", dialogues: ['你好，我是奶氏早苗，村长秘书。', '我们村正在全力建设“笑声GDP”。', '请配合统计：你今天笑了吗？哈哈哈！'] },
+                { id: 6, name: "👮 奶安局", npc: "奶察", posX: "79.40%", posY: "68.65%", dialogues: ['我是奶察，维护奶家村治安。', '最近有没有人“偷着乐”？这可是违法行为！', '跟我回局里，对着墙笑五分钟！'] },
+                { id: 7, name: "🏯 奶庙", npc: "奶三藏", posX: "19.02%", posY: "26.01%", dialogues: ['贫僧奶三藏，从东土大唐而来。', '贫僧此行只为取“笑声真经”。', '施主，请念一段“哈哈哈”给我听听！'] },
+                { id: 8, name: "🎮 奶氏电竞俱乐部", npc: "奶康", posX: "7.31%", posY: "65.18%", dialogues: ['我是奶康，村服第一射手，不要小瞧奶家村的羁绊啊！', '对面五个已经被我笑趴下了，都是同龄人我原本没想降维打击。', '来，跟我团战，笑到最后！'] },
+                { id: 9, name: "🍺 奶吧", npc: "奶king", posX: "47.75%", posY: "84.38%", dialogues: ['我是奶king，被资本雪藏的男团C位。', '我们的招牌酒叫“大笑江湖”，喝一口能笑一天！', '要不要来一杯？先笑为敬！'] },
+                { id: 10, name: "⛩️ 奶村牌楼", npc: "奶狗", posX: "88.37%", posY: "59.01%", dialogues: ['我是奶狗，守门大将！', '进村先扫码，码在这里：笑一个！', '别忘了带点笑声进村，这可是硬通货！'] }
+            ];
+
+            const sealColors = ['#8b3a1f', '#9c5d3c', '#3c5c8b', '#3c6b4e', '#8b7a3c', '#6b3c5c', '#8b6b4e', '#3c6b6b', '#9b4e3c', '#4e5c6b'];
+
+            const mapContainer = document.getElementById('mapContainer');
+            const mapImage = document.getElementById('mapImage');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalCard = document.getElementById('modalCard');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const modalNpcImage = document.getElementById('modalNpcImage');
+            const modalFallbackSeal = document.getElementById('modalFallbackSeal');
+            const modalNpcName = document.getElementById('modalNpcName');
+            const modalSceneName = document.getElementById('modalSceneName');
+            const modalDialogue = document.getElementById('modalDialogue');
+            const modalNextBtn = document.getElementById('modalNextBtn');
+            const celebrateOverlay = document.getElementById('celebrateOverlay');
+            const celebrateText = document.getElementById('celebrateText');
+            const laughAudio = document.getElementById('laughAudio');
+
+            let currentScene = null;
+            let dialogueIndex = 0;
+            let isClosingLocked = false;
+            let isModalOpen = false;
+
+            function createHotspots() {
+                scenes.forEach((scene, index) => {
+                    const hotspot = document.createElement('div');
+                    hotspot.className = 'hotspot';
+                    hotspot.style.left = scene.posX;
+                    hotspot.style.top = scene.posY;
+                    hotspot.title = scene.name + ' — ' + scene.npc;
+                    hotspot.setAttribute('data-scene-index', index);
+                    hotspot.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (isClosingLocked) return;
+                        openModal(scene);
+                    });
+                    hotspot.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isClosingLocked) return;
+                        openModal(scene);
+                    });
+                    mapContainer.appendChild(hotspot);
+                });
+            }
+
+            function openModal(scene) {
+                if (isClosingLocked) return;
+                if (isModalOpen) resetAndClose(false);
+                currentScene = scene;
+                dialogueIndex = 0;
+                isModalOpen = true;
+                modalNpcName.textContent = scene.npc;
+                modalSceneName.textContent = scene.name;
+                updateDialogueText();
+                updateButtonText();
+                const imagePath = 'images/' + scene.id + '.png';
+                modalNpcImage.src = imagePath;
+                modalNpcImage.classList.remove('hidden');
+                modalFallbackSeal.classList.add('hidden');
+                modalNpcImage.onload = function() {
+                    modalNpcImage.classList.remove('hidden');
+                    modalFallbackSeal.classList.add('hidden');
+                };
+                modalNpcImage.onerror = function() {
+                    modalNpcImage.classList.add('hidden');
+                    modalFallbackSeal.classList.remove('hidden');
+                    const firstChar = scene.npc.charAt(0);
+                    modalFallbackSeal.textContent = firstChar;
+                    const colorIndex = (scene.id - 1) % sealColors.length;
+                    modalFallbackSeal.style.backgroundColor = sealColors[colorIndex];
+                };
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                setTimeout(function() {
+                    modalCloseBtn.focus();
+                }, 150);
+            }
+
+            function updateDialogueText() {
+                if (!currentScene) return;
+                modalDialogue.classList.add('fading');
+                setTimeout(function() {
+                    modalDialogue.textContent = currentScene.dialogues[dialogueIndex];
+                    modalDialogue.classList.remove('fading');
+                }, 180);
+            }
+
+            function updateButtonText() {
+                if (!currentScene) return;
+                if (dialogueIndex >= currentScene.dialogues.length - 1) {
+                    modalNextBtn.textContent = '开怀大笑！';
+                    modalNextBtn.classList.add('laugh-mode');
+                } else {
+                    modalNextBtn.textContent = '下一条';
+                    modalNextBtn.classList.remove('laugh-mode');
+                }
+            }
+
+            function advanceDialogue() {
+                if (!currentScene || isClosingLocked) return;
+                const isLastDialogue = (dialogueIndex >= currentScene.dialogues.length - 1);
+                if (isLastDialogue) {
+                    triggerLaughSequence();
+                } else {
+                    dialogueIndex++;
+                    updateDialogueText();
+                    updateButtonText();
+                }
+            }
+
+            function triggerLaughSequence() {
+                if (isClosingLocked) return;
+                isClosingLocked = true;
+                modalNextBtn.disabled = true;
+                modalNextBtn.textContent = '😂 大笑中...';
+                laughAudio.currentTime = 0;
+                const playPromise = laughAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(function(err) {
+                        console.warn('音频播放失败（laugh.mp3可能缺失）:', err.message);
+                    });
+                }
+                celebrateOverlay.classList.add('active');
+                celebrateText.style.animation = 'none';
+                celebrateText.offsetHeight;
+                celebrateText.style.animation = 'celebrateBounce 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) forwards';
+                setTimeout(function() {
+                    celebrateOverlay.classList.remove('active');
+                    celebrateText.style.animation = 'none';
+                    resetAndClose(true);
+                    isClosingLocked = false;
+                }, 1200);
+            }
+
+            function resetAndClose(animate) {
+                currentScene = null;
+                dialogueIndex = 0;
+                isModalOpen = false;
+                modalNextBtn.disabled = false;
+                modalNextBtn.classList.remove('laugh-mode');
+                modalNextBtn.textContent = '下一条';
+                modalDialogue.textContent = '';
+                modalDialogue.classList.remove('fading');
+                modalNpcImage.src = '';
+                modalNpcImage.classList.remove('hidden');
+                modalNpcImage.onload = null;
+                modalNpcImage.onerror = null;
+                modalFallbackSeal.classList.add('hidden');
+                modalFallbackSeal.textContent = '';
+                modalNpcName.textContent = '';
+                modalSceneName.textContent = '';
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            function closeModal() {
+                if (isClosingLocked || !isModalOpen) return;
+                resetAndClose(true);
+            }
+
+            modalCloseBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closeModal();
+            });
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) closeModal();
+            });
+            modalCard.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            modalNextBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                advanceDialogue();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isModalOpen && !isClosingLocked) {
+                    e.preventDefault();
+                    closeModal();
+                }
+            });
+
+            function init() {
+                createHotspots();
+                laughAudio.load();
+                console.log('🏔️ 奶家村交互式地图已就绪 | ' + scenes.length + '个场景热点已部署');
+            }
+
+            if (mapImage.complete && mapImage.naturalWidth > 0) {
+                init();
+            } else {
+                mapImage.addEventListener('load', init);
+            }
+            setTimeout(function() {
+                if (mapContainer.querySelectorAll('.hotspot').length === 0) {
+                    init();
+                }
+            }, 1500);
+        })();
+    </script>
+</body>
+</html>
