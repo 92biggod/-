@@ -1,8 +1,5 @@
-<!--
-创造性：将静态地图改造为非线性探索叙事，结合视觉（古风UI、脉冲热点、圆形NPC徽章）与听觉（笑声彩蛋）双重反馈，
-10个NPC对话串联成奶家村笑声传说。图片容错降级为古风圆章，确保离线或资源缺失时体验不中断。
-弹窗采用左图右文布局，对话逐句推进，末句触发笑声庆祝动画，形成完整的“探索—互动—反馈”闭环。
--->
+
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -108,69 +105,71 @@
 
         .hotspot {
             position: absolute;
-            width: 26px;
-            height: 26px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: radial-gradient(circle at 40% 35%, #ffe9b0, var(--amber) 60%, #c47a20 100%);
+            background: radial-gradient(circle at 40% 35%, #f5deb3, var(--amber) 55%, #b06a20 100%);
             cursor: pointer;
             z-index: 10;
             transform: translate(-50%, -50%);
-            animation: hotspotPulse 2.2s ease-in-out infinite;
+            animation: hotspotPulse 2.8s ease-in-out infinite;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            border: 1.5px solid rgba(255, 255, 255, 0.4);
             pointer-events: auto;
+            opacity: 0.85;
         }
         .hotspot::after {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 8px;
-            height: 8px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
             background: #fff;
             transform: translate(-50%, -50%);
-            opacity: 0.8;
+            opacity: 0.65;
             pointer-events: none;
         }
         .hotspot:hover {
-            transform: translate(-50%, -50%) scale(1.5);
-            animation: hotspotPulseHover 0.8s ease-in-out infinite;
+            transform: translate(-50%, -50%) scale(1.45);
+            animation: hotspotPulseHover 0.9s ease-in-out infinite;
             z-index: 20;
-            border-color: #fff;
+            border-color: rgba(255, 255, 255, 0.75);
+            opacity: 1;
         }
         .hotspot:active {
-            transform: translate(-50%, -50%) scale(1.3);
+            transform: translate(-50%, -50%) scale(1.25);
             transition: transform 0.08s ease;
         }
 
         @keyframes hotspotPulse {
             0%,
             100% {
-                box-shadow: 0 0 8px 4px var(--amber-glow), 0 0 18px 8px rgba(240, 168, 64, 0.35), 0 0 30px 14px rgba(240, 150, 40, 0.15);
+                box-shadow: 0 0 4px 2px rgba(240, 168, 64, 0.4), 0 0 10px 4px rgba(240, 168, 64, 0.18), 0 0 16px 6px rgba(240, 150, 40, 0.06);
             }
             50% {
-                box-shadow: 0 0 14px 8px rgba(255, 190, 70, 0.9), 0 0 28px 16px rgba(240, 168, 64, 0.55), 0 0 44px 22px rgba(240, 150, 40, 0.25);
+                box-shadow: 0 0 7px 4px rgba(245, 175, 60, 0.55), 0 0 16px 8px rgba(240, 168, 64, 0.28), 0 0 24px 10px rgba(240, 150, 40, 0.1);
             }
         }
         @keyframes hotspotPulseHover {
             0%,
             100% {
-                box-shadow: 0 0 16px 8px rgba(255, 200, 80, 0.9), 0 0 32px 18px rgba(240, 170, 50, 0.6), 0 0 50px 26px rgba(240, 150, 40, 0.3);
+                box-shadow: 0 0 8px 4px rgba(250, 195, 70, 0.6), 0 0 18px 10px rgba(240, 170, 50, 0.35), 0 0 28px 14px rgba(240, 150, 40, 0.15);
             }
             50% {
-                box-shadow: 0 0 22px 12px rgba(255, 210, 90, 1), 0 0 40px 24px rgba(245, 175, 55, 0.75), 0 0 58px 32px rgba(240, 150, 40, 0.4);
+                box-shadow: 0 0 12px 6px rgba(255, 205, 80, 0.7), 0 0 24px 14px rgba(245, 175, 55, 0.45), 0 0 34px 18px rgba(240, 150, 40, 0.2);
             }
         }
 
         @media (max-width: 768px) {
             .hotspot {
-                width: 34px;
-                height: 34px;
+                width: 26px;
+                height: 26px;
             }
             .hotspot::after {
-                width: 10px;
-                height: 10px;
+                width: 7px;
+                height: 7px;
             }
         }
 
@@ -416,6 +415,35 @@
             text-align: center;
             line-height: 1.3;
         }
+        .celebrate-skip-btn {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1.5px solid rgba(255, 255, 255, 0.5);
+            border-radius: 30px;
+            padding: 10px 28px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-family: var(--font-serif);
+            letter-spacing: 0.08em;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            pointer-events: auto;
+        }
+        .celebrate-skip-btn:hover {
+            background: rgba(255, 255, 255, 0.28);
+            border-color: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 20px rgba(255, 200, 50, 0.5);
+            transform: translateX(-50%) scale(1.05);
+        }
+        .celebrate-skip-btn:active {
+            transform: translateX(-50%) scale(0.95);
+            transition: transform 0.08s ease;
+        }
         @keyframes celebrateBounce {
             0% {
                 transform: scale(0.2) rotate(-8deg);
@@ -576,17 +604,28 @@
 
     <div class="celebrate-overlay" id="celebrateOverlay">
         <div class="celebrate-text" id="celebrateText">😂 哈！哈！哈！</div>
+        <button class="celebrate-skip-btn" id="celebrateSkipBtn" title="结束大笑">跳过 ▶▶</button>
     </div>
 
     <footer class="site-footer">
-        <p>
-            地图素材来源：奶家村原创手绘地图<span class="divider">|</span>
-            音效来源：原创笑声录音 / 免费音效库<span class="divider">|</span>
-            AI辅助生成说明：本页面由AI辅助生成（DeepSeek），用于课程学习与展示
-        </p>
-        <p style="margin-top:4px;opacity:0.7;">
-            奶家村笑声传说 · 交互式地图探索 · 纯前端单页应用
-        </p>
+        <div style="max-width:800px;margin:0 auto;padding:0 16px;">
+            <p style="font-size:0.85rem;font-weight:600;color:#d4a574;letter-spacing:0.08em;margin-bottom:6px;">
+                🙏 致 谢
+            </p>
+            <p>
+                本作品为计算机科学导论课程个人作品，在制作过程中得到了多方的支持与帮助，特此致谢：
+            </p>
+            <ul style="list-style:none;padding:0;margin:8px 0;text-align:left;display:inline-block;font-size:0.8rem;line-height:1.9;">
+                <li>📍 <strong>地图素材</strong>：奶家村规划图（mindvideoAI绘制）</li>
+                <li>📷 <strong>NPC角色形象</strong>：由 AI 绘画工具生成（<a href="https://www.midjourney.com" target="_blank">Midjourney</a>），经去背景处理后用于本作品</li>
+                <li>🔊 <strong>笑声音效</strong>：来自免费音效库（<a href="https://pixabay.com/zh/sound-effects/" target="_blank">Pixabay</a> / 自录素材）</li>
+                <li>🤖 <strong>代码辅助</strong>：部分交互逻辑与样式由 <a href="https://deepseek.com" target="_blank">DeepSeek</a> AI 辅助生成，经本人理解、调试并整合</li>
+                <li>📚 <strong>课程指导</strong>：感谢计算机科学导论课程老师的讲解与实验指导</li>
+            </ul>
+            <p style="margin-top:8px;font-size:0.7rem;opacity:0.7;border-top:1px solid rgba(212,165,116,0.2);padding-top:8px;">
+                🏮 本页面为纯前端单页应用 · 所有资源仅用于课程学习与展示 · 非商业用途
+            </p>
+        </div>
     </footer>
 
     <script>
@@ -620,12 +659,14 @@
             const modalNextBtn = document.getElementById('modalNextBtn');
             const celebrateOverlay = document.getElementById('celebrateOverlay');
             const celebrateText = document.getElementById('celebrateText');
+            const celebrateSkipBtn = document.getElementById('celebrateSkipBtn');
             const laughAudio = document.getElementById('laughAudio');
 
             let currentScene = null;
             let dialogueIndex = 0;
             let isClosingLocked = false;
             let isModalOpen = false;
+            let laughTimer = null;
 
             function createHotspots() {
                 scenes.forEach((scene, index) => {
@@ -728,15 +769,34 @@
                     });
                 }
                 celebrateOverlay.classList.add('active');
+                celebrateSkipBtn.style.display = '';
                 celebrateText.style.animation = 'none';
                 celebrateText.offsetHeight;
                 celebrateText.style.animation = 'celebrateBounce 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) forwards';
-                setTimeout(function() {
-                    celebrateOverlay.classList.remove('active');
-                    celebrateText.style.animation = 'none';
-                    resetAndClose(true);
-                    isClosingLocked = false;
+                laughTimer = setTimeout(function() {
+                    finishLaughSequence();
                 }, 1200);
+            }
+
+            function stopLaughSequence() {
+                if (laughTimer !== null) {
+                    clearTimeout(laughTimer);
+                    laughTimer = null;
+                }
+                laughAudio.pause();
+                laughAudio.currentTime = 0;
+                finishLaughSequence();
+            }
+
+            function finishLaughSequence() {
+                if (laughTimer !== null) {
+                    clearTimeout(laughTimer);
+                    laughTimer = null;
+                }
+                celebrateOverlay.classList.remove('active');
+                celebrateText.style.animation = 'none';
+                resetAndClose(true);
+                isClosingLocked = false;
             }
 
             function resetAndClose(animate) {
@@ -779,10 +839,18 @@
                 e.stopPropagation();
                 advanceDialogue();
             });
+            celebrateSkipBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                stopLaughSequence();
+            });
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && isModalOpen && !isClosingLocked) {
                     e.preventDefault();
                     closeModal();
+                }
+                if ((e.key === 'Escape' || e.key === ' ') && isClosingLocked) {
+                    e.preventDefault();
+                    stopLaughSequence();
                 }
             });
 
